@@ -1,0 +1,3 @@
+# Local development only. Never packaged into the Lambda zip.
+-r requirements.txt
+boto3

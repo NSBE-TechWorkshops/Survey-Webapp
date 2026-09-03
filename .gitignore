@@ -1,0 +1,48 @@
+# Terraform local files
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Terraform variable files with real values
+*.tfvars
+*.tfvars.json
+
+# Keep example variable files
+!*.tfvars.example
+
+# Terraform CLI override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Environment/local secrets
+.env
+.env.*
+!.env.example
+.aws/
+
+# Lambda build artifacts
+build/
+*.zip
+
+# Logs
+*.log
+
+# Docker local overrides
+docker-compose.override.yml
+
+# PyCharm
+.idea/

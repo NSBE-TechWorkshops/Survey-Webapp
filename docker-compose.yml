@@ -1,0 +1,10 @@
+services:
+  backend:
+    build: .
+    container_name: survey-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ~/.aws:/root/.aws:ro
