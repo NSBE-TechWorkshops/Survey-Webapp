@@ -108,13 +108,26 @@ hash_key   = "response_id"
 terraform init
 ```
 
-## Step 6: Preview The Resources
+## Step 6: Build The Lambda Package
+
+Terraform expects the Lambda source bundle to already exist.
+From the project root, run:
+
+```bash
+cd ..
+./build.sh
+cd infra
+```
+
+This creates `../build/` and `../lambda.zip` for the Lambda module.
+
+## Step 7: Preview The Resources
 
 ```bash
 terraform plan
 ```
 
-## Step 7: Create The AWS Resources
+## Step 8: Create The AWS Resources
 
 ```bash
 terraform apply
@@ -122,7 +135,7 @@ terraform apply
 
 Type `yes` when Terraform asks for confirmation.
 
-## Step 8: Review The Outputs
+## Step 9: Review The Outputs
 
 Terraform prints values such as:
 
@@ -132,7 +145,7 @@ table_arn  = "arn:aws:dynamodb:us-east-1:123456789012:table/survey-responses"
 api_url    = "https://example.lambda-url.us-east-1.on.aws/"
 ```
 
-## Step 9: Clean Up Resources
+## Step 10: Clean Up Resources
 
 When you are done:
 

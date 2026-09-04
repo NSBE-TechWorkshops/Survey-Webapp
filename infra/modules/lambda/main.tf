@@ -1,4 +1,16 @@
+resource "terraform_data" "lambda_source_check" {
+  input = var.source_dir
+
+  lifecycle {
+    precondition {
+      condition     = fileexists("${var.source_dir}/survey.py")
+      error_message = "Lambda build output not found in ${var.source_dir}. Run ./build.sh from the project root before terraform plan/apply."
+    }
+  }
+}
+
 data "archive_file" "lambda" {
+  depends_on  = [terraform_data.lambda_source_check]
   type        = "zip"
   source_dir  = var.source_dir
   output_path = var.output_path
