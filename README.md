@@ -8,11 +8,12 @@ Before running the app or deploying infrastructure, install the required tools w
 
 The setup scripts install Docker and Docker Compose. You can also install Docker Desktop manually if you prefer, especially on macOS or Windows. If Docker Desktop was just installed, open it once before running `docker compose`.
 
-Bellow are copy and paste commands that you can run to get everything installed. Open the terminal and make sure you are in the project root path before pasting the command and running it. Look for your specific operating system, copy and paste the command in the terminal. The script will run and get all the programs and dependencies setup for you to continue getting started.
+Below are copy and paste commands that you can run to get everything installed. Open the terminal and make sure you are in the project root folder, `Survey-Webapp/`, before pasting the command and running it. The full path depends on where you cloned the repo, but it should end with `Survey-Webapp/`. Look for your specific operating system, copy and paste the command in the terminal. The script will run and get all the programs and dependencies setup for you to continue getting started.
 
 macOS/Linux:
 
 ```bash
+# Run from: Survey-Webapp/
 chmod +x setup/install-unix.sh
 ./setup/install-unix.sh
 ```
@@ -20,6 +21,7 @@ chmod +x setup/install-unix.sh
 Windows PowerShell:
 
 ```powershell
+# Run from: Survey-Webapp\
 powershell -ExecutionPolicy Bypass -File .\setup\install-windows.ps1
 ```
 
@@ -30,6 +32,7 @@ See `setup/README.md` for details about what gets installed and platform-specifi
 If you cloned this repo during a previous workshop session, run `git pull` first so your local copy has the latest setup scripts and README changes.
 
 ```bash
+# Run from: Survey-Webapp/
 git pull
 ```
 
@@ -74,6 +77,7 @@ The AWS identity you use locally needs enough permissions for Terraform to manag
 For access keys, run:
 
 ```bash
+# Run from any folder
 aws configure
 ```
 
@@ -84,6 +88,7 @@ Enter your AWS Access Key ID, Secret Access Key, default region, and output form
 Run:
 
 ```bash
+# Run from any folder
 aws sts get-caller-identity
 ```
 
@@ -116,6 +121,7 @@ The Dockerfile installs `requirements-dev.txt`, which includes `boto3`, so the b
 Make sure you have completed the `AWS account and credentials` section above. As a quick reminder, access-key based setup uses:
 
 ```bash
+# Run from any folder
 aws configure
 ```
 
@@ -124,11 +130,15 @@ aws configure
 From the project root, build the Lambda package first. Then create the AWS resources from the `infra/` folder:
 
 ```bash
+# Run from: Survey-Webapp/
 ./build.sh
 
+# Then switch to: Survey-Webapp/infra/
 cd infra
 terraform init
 terraform apply
+
+# Return to: Survey-Webapp/
 cd ..
 ```
 
@@ -137,6 +147,7 @@ cd ..
 From the project root, copy the example file:
 
 ```bash
+# Run from: Survey-Webapp/
 cp .env.example .env
 ```
 
@@ -152,6 +163,7 @@ TABLE_NAME=survey-responses
 From the project root:
 
 ```bash
+# Run from: Survey-Webapp/
 docker compose up --build
 ```
 
@@ -167,12 +179,14 @@ To stop the backend, press `Ctrl+C`.
 If you want to run it in the background instead:
 
 ```bash
+# Run from: Survey-Webapp/
 docker compose up --build -d
 ```
 
 Then stop it with:
 
 ```bash
+# Run from: Survey-Webapp/
 docker compose down
 ```
 
@@ -187,6 +201,7 @@ http://localhost:8000/docs
 Use this option only if you do not want to use Docker. The `run.sh` script starts the local FastAPI development server with Uvicorn and is not required for Terraform deployment.
 
 ```bash
+# Run from: Survey-Webapp/
 pip install -r requirements-dev.txt
 ./run.sh
 ```
@@ -200,8 +215,13 @@ This is a demo/workshop project. When you are done testing, destroy the AWS reso
 From the project root, run:
 
 ```bash
+# Run from: Survey-Webapp/
 cd infra
+
+# Now in: Survey-Webapp/infra/
 terraform destroy
+
+# Return to: Survey-Webapp/
 cd ..
 ```
 
@@ -210,8 +230,13 @@ Type `yes` when Terraform asks for confirmation.
 If you want to preview what Terraform will remove before destroying anything, run:
 
 ```bash
+# Run from: Survey-Webapp/
 cd infra
+
+# Now in: Survey-Webapp/infra/
 terraform plan -destroy
+
+# Return to: Survey-Webapp/
 cd ..
 ```
 
