@@ -2,6 +2,25 @@
 
 This project contains a FastAPI backend, Terraform infrastructure, and a Docker setup for running the backend locally.
 
+## Install prerequisites
+
+Before running the app or deploying infrastructure, install the required tools with the setup scripts in `setup/`.
+
+macOS/Linux:
+
+```bash
+chmod +x setup/install-unix.sh
+./setup/install-unix.sh
+```
+
+Windows PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup\install-windows.ps1
+```
+
+See `setup/README.md` for details about what gets installed and platform-specific notes.
+
 ## Run the backend locally with Docker
 
 The Dockerfile installs `requirements-dev.txt`, which includes `boto3`, so the backend can connect to AWS DynamoDB from inside the container.
