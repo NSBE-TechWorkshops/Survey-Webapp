@@ -8,6 +8,8 @@ Before running the app or deploying infrastructure, install the required tools w
 
 The setup scripts install Docker and Docker Compose. You can also install Docker Desktop manually if you prefer, especially on macOS or Windows. If Docker Desktop was just installed, open it once before running `docker compose`.
 
+Bellow are copy and paste commands that you can run to get everything installed. Open the terminal and make sure you are in the project root path before pasting the command and running it. Look for your specific operating system, copy and paste the command in the terminal. The script will run and get all the programs and dependencies setup for you to continue getting started.
+
 macOS/Linux:
 
 ```bash
