@@ -24,7 +24,18 @@ handler = Mangum(app)
 TABLE_NAME = os.environ.get("TABLE_NAME", "survey-responses")
 DYNAMODB_ENDPOINT = os.environ.get("DYNAMODB_ENDPOINT") or None
 
-dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
+# boto3 reads the region from AWS_DEFAULT_REGION, not AWS_REGION, and fails
+# with NoRegionError when neither is set. Pass it explicitly so the app starts
+# on a machine with no AWS configuration at all. Lambda sets AWS_REGION itself.
+AWS_REGION = (
+    os.environ.get("AWS_REGION")
+    or os.environ.get("AWS_DEFAULT_REGION")
+    or "us-east-1"
+)
+
+dynamodb = boto3.resource(
+    "dynamodb", endpoint_url=DYNAMODB_ENDPOINT, region_name=AWS_REGION
+)
 
 
 def ensure_local_table() -> None:

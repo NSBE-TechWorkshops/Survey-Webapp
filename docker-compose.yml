@@ -18,6 +18,7 @@ services:
       # Workshop defaults. Nothing here needs a real AWS account.
       # A .env file in this folder, if you make one, overrides these.
       AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
       TABLE_NAME: ${TABLE_NAME:-survey-responses}
       DYNAMODB_ENDPOINT: ${DYNAMODB_ENDPOINT-http://dynamodb:8000}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-local}
