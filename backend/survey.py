@@ -13,9 +13,50 @@ from pydantic import BaseModel
 app = FastAPI()
 handler = Mangum(app)
 
-table = boto3.resource("dynamodb").Table(
-    os.environ.get("TABLE_NAME", "survey-responses")
-)
+# ---------------------------------------------------------------------------
+# Storage.
+#
+# Workshop mode: DYNAMODB_ENDPOINT points at the DynamoDB container started by
+# docker compose, so no AWS account or credentials are needed. On AWS Lambda
+# the variable is unset and boto3 talks to real DynamoDB instead.
+# ---------------------------------------------------------------------------
+
+TABLE_NAME = os.environ.get("TABLE_NAME", "survey-responses")
+DYNAMODB_ENDPOINT = os.environ.get("DYNAMODB_ENDPOINT") or None
+
+dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
+
+
+def ensure_local_table() -> None:
+    """Create the table in DynamoDB Local so nobody needs Terraform to start."""
+    client = dynamodb.meta.client
+
+    for _ in range(30):
+        try:
+            client.describe_table(TableName=TABLE_NAME)
+            return
+        except client.exceptions.ResourceNotFoundException:
+            client.create_table(
+                TableName=TABLE_NAME,
+                KeySchema=[{"AttributeName": "response_id", "KeyType": "HASH"}],
+                AttributeDefinitions=[
+                    {"AttributeName": "response_id", "AttributeType": "S"}
+                ],
+                BillingMode="PAY_PER_REQUEST",
+            )
+            client.get_waiter("table_exists").wait(TableName=TABLE_NAME)
+            return
+        except Exception:
+            # DynamoDB Local is still booting. Wait and try again.
+            time.sleep(1)
+
+    raise RuntimeError(f"DynamoDB Local never came up at {DYNAMODB_ENDPOINT}")
+
+
+if DYNAMODB_ENDPOINT:
+    ensure_local_table()
+
+table = dynamodb.Table(TABLE_NAME)
 
 
 class Question(BaseModel):

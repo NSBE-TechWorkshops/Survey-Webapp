@@ -1,0 +1,3 @@
+# Keep shell scripts LF even when cloned on Windows. Git Bash and WSL choke on
+# CRLF line endings with errors like: /usr/bin/env: 'bash\r': No such file
+*.sh text eol=lf

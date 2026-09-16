@@ -56,7 +56,30 @@ if (Test-Python312) {
 
 Install-WingetPackage -Id "Hashicorp.Terraform" -Name "Terraform" -Command "terraform"
 Install-WingetPackage -Id "Amazon.AWSCLI" -Name "AWS CLI v2" -Command "aws"
-Install-WingetPackage -Id "Docker.DockerDesktop" -Name "Docker Desktop" -Command "docker"
+
+# Docker Desktop needs WSL 2 on Windows, and installing WSL requires a reboot.
+# Check it before Docker so nobody discovers this on workshop day.
+Write-Step "Checking WSL 2"
+wsl --status *> $null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "WSL is not set up. Docker Desktop needs it."
+    Write-Host "Open PowerShell AS ADMINISTRATOR, run:  wsl --install"
+    Write-Host "Then RESTART your computer and run this script again."
+    Write-Host "Do this before the workshop. The restart is not optional."
+} else {
+    Write-Host "WSL is available."
+}
+
+# Check for the app itself, not a `docker` command. A docker CLI can exist
+# (from WSL or another install) with no engine behind it, and testing for the
+# command would skip this install and leave every docker command failing.
+$DockerDesktopExe = Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe"
+if (Test-Path $DockerDesktopExe) {
+    Write-Host "Docker Desktop already installed."
+} else {
+    Write-Step "Installing Docker Desktop"
+    winget install --id "Docker.DockerDesktop" --exact --accept-source-agreements --accept-package-agreements
+}
 
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
@@ -85,9 +108,10 @@ if (Test-Command docker) {
 
 Write-Host ""
 Write-Host "Next steps:"
-Write-Host "1. Run: aws configure"
-Write-Host "2. Copy .env.example to .env and infra\terraform.tfvars.example to infra\terraform.tfvars"
-Write-Host "3. Run: bash ./build.sh, or use Git Bash/WSL if Bash is not available"
-Write-Host "4. Run Terraform commands from infra\README.md"
+Write-Host "1. Open Docker Desktop once and wait for it to finish starting."
+Write-Host "2. Check it works:  docker compose version"
+Write-Host "3. From the project root, run:  docker compose up --build"
+Write-Host "4. Open http://localhost:8000/docs"
 Write-Host ""
-Write-Host "If Docker was just installed, open Docker Desktop once before running docker compose."
+Write-Host "That is all the workshop needs. Terraform and the AWS CLI installed"
+Write-Host "here are only for the optional deployment track in infra\README.md."

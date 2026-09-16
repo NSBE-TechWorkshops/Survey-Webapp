@@ -42,11 +42,18 @@ install_macos() {
   brew update
   brew install python@3.12 terraform awscli
 
-  if ! has_command docker; then
-    brew install --cask docker
-    info "Docker Desktop was installed. Open Docker Desktop once before using docker compose."
+  # Note: check for the app, not the `docker` binary. `brew install docker`
+  # (no --cask) installs the CLI with no engine behind it, and testing for the
+  # binary would skip the install and leave a CLI that cannot reach a daemon.
+  if [[ -d /Applications/Docker.app ]]; then
+    info "Docker Desktop already installed"
   else
-    info "Docker already installed: $(docker --version)"
+    brew install --cask docker-desktop
+    info "Docker Desktop was installed. Open it once before using docker compose."
+  fi
+
+  if ! docker info >/dev/null 2>&1; then
+    info "Docker is installed but the engine is not running. Open Docker Desktop, wait for it to finish starting, then run: docker compose version"
   fi
 }
 
@@ -136,10 +143,12 @@ verify() {
   docker compose version || true
 
   printf '\nNext steps:\n'
-  printf '1. Run: aws configure\n'
-  printf '2. Copy .env.example to .env and infra/terraform.tfvars.example to infra/terraform.tfvars\n'
-  printf '3. Run: ./build.sh\n'
-  printf '4. Run Terraform commands from infra/README.md\n'
+  printf '1. Open Docker Desktop once and wait for it to finish starting.\n'
+  printf '2. Check it works: docker compose version\n'
+  printf '3. From the project root, run: docker compose up --build\n'
+  printf '4. Open http://localhost:8000/docs\n'
+  printf '\nThat is all the workshop needs. Terraform and the AWS CLI installed\n'
+  printf 'here are only for the optional deployment track in infra/README.md.\n'
 }
 
 case "$OS" in

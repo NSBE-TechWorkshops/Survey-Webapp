@@ -1,10 +1,24 @@
 services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    container_name: survey-dynamodb
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports:
+      # Host port 8001 so it does not collide with the backend on 8000.
+      - "8001:8000"
+
   backend:
     build: .
     container_name: survey-backend
     ports:
       - "8000:8000"
-    env_file:
-      - .env
-    volumes:
-      - ~/.aws:/root/.aws:ro
+    depends_on:
+      - dynamodb
+    environment:
+      # Workshop defaults. Nothing here needs a real AWS account.
+      # A .env file in this folder, if you make one, overrides these.
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      TABLE_NAME: ${TABLE_NAME:-survey-responses}
+      DYNAMODB_ENDPOINT: ${DYNAMODB_ENDPOINT-http://dynamodb:8000}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-local}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-local}

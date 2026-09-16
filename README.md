@@ -1,248 +1,291 @@
-# Survey App
+# Survey App Workshop
 
-This project contains a FastAPI backend, Terraform infrastructure, and a Docker setup for running the backend locally.
+You are building the backend for a survey app: an API that stores questions,
+collects answers, and reports results. The infrastructure is already written.
+Your job is the CRUD endpoints in `backend/survey.py`.
 
-## Install prerequisites
+Everything runs on your laptop in containers. No AWS account, no credentials,
+and no Terraform are needed to take part. Deploying to AWS is an optional
+extra at the end, in `infra/README.md`.
 
-Before running the app or deploying infrastructure, install the required tools with the setup scripts in `setup/`.
+## Before the workshop
 
-The setup scripts install Docker and Docker Compose. You can also install Docker Desktop manually if you prefer, especially on macOS or Windows. If Docker Desktop was just installed, open it once before running `docker compose`.
+You need **Git** and **Docker**. Pick your operating system below.
 
-Below are copy and paste commands that you can run to get everything installed. Open the terminal and make sure you are in the project root folder, `Survey-Webapp/`, before pasting the command and running it. The full path depends on where you cloned the repo, but it should end with `Survey-Webapp/`. Look for your specific operating system, copy and paste the command in the terminal. The script will run and get all the programs and dependencies setup for you to continue getting started.
+Do this before the session, not during it. Docker installs are the one thing
+we cannot fix quickly in a room, and on Windows it requires a restart.
 
-macOS/Linux:
+### Windows
+
+Docker Desktop on Windows runs on WSL 2, so install that first. Open
+PowerShell **as Administrator** and run:
+
+```powershell
+wsl --install
+```
+
+**Restart your computer.** This step is not optional and cannot be skipped on
+workshop day.
+
+Then, in a normal PowerShell window:
+
+```powershell
+winget install --id Git.Git --exact
+winget install --id Docker.DockerDesktop --exact
+```
+
+Open Docker Desktop once and wait for it to finish starting.
+
+### macOS
 
 ```bash
-# Run from: Survey-Webapp/
-chmod +x setup/install-unix.sh
-./setup/install-unix.sh
+brew install --cask docker-desktop
+```
+
+Use `--cask`. Plain `brew install docker` gives you the CLI with no engine
+behind it, and every command then fails with `Cannot connect to the Docker
+daemon`. Open Docker Desktop once after installing.
+
+No Homebrew? Download Docker Desktop from
+<https://www.docker.com/products/docker-desktop/> and pick the build matching
+your chip, Apple Silicon or Intel.
+
+### Linux
+
+Install Docker Engine and the Compose plugin from your package manager, or run
+`./setup/install-unix.sh`.
+
+### Everyone: check it worked
+
+```bash
+docker compose version
+```
+
+A version number means you are ready. `Cannot connect to the Docker daemon`
+means Docker Desktop is installed but not running, so open it and wait.
+
+The scripts in `setup/` do all of the above for you, plus the tools for the
+optional AWS track. See `setup/README.md`.
+
+## Start the app
+
+Three commands, from any folder:
+
+```bash
+git clone https://github.com/NSBE-TechWorkshops/Survey-Webapp.git
+cd Survey-Webapp
+docker compose up --build
+```
+
+The first build takes a few minutes. After that it is seconds.
+
+This starts two containers: the FastAPI backend on port `8000`, and a local
+DynamoDB on port `8001`. The table is created automatically on startup.
+
+Stop everything with `Ctrl+C`. The local database is in memory, so data is
+cleared each time you stop. That is on purpose, it gives you a clean slate.
+
+If you cloned during the first workshop, run `git pull` instead of cloning.
+
+## Check your setup
+
+Open <http://localhost:8000/docs>. You should see the interactive API page.
+
+Then run the health check, which writes a row, reads it back, and deletes it.
+
+macOS and Linux:
+
+```bash
+curl http://localhost:8000/health
 ```
 
 Windows PowerShell:
 
 ```powershell
-# Run from: Survey-Webapp\
-powershell -ExecutionPolicy Bypass -File .\setup\install-windows.ps1
+Invoke-RestMethod http://localhost:8000/health
 ```
 
-See `setup/README.md` for details about what gets installed and platform-specific notes.
+Expected:
 
-## Update your local copy
+```json
+{"ok": true, "table": "survey-responses", "wrote": "healthcheck_...", "read_back": {...}}
+```
 
-If you cloned this repo during a previous workshop session, run `git pull` first so your local copy has the latest setup scripts and README changes.
+`"ok": true` means your setup is finished and the database is reachable. If
+you get that, you are ready to write code.
+
+## What you are implementing
+
+Open `backend/survey.py`. Six endpoints currently return
+`501 Not Implemented`. That is expected, they are yours to write.
+
+| Endpoint | Method | What it should do |
+| --- | --- | --- |
+| `/create-questions` | POST | Save a new question, return it with its generated id |
+| `/get-questions` | GET | Return every question |
+| `/update-question/{response_id}` | PUT | Change the text of one question |
+| `/delete-questions/{response_id}` | DELETE | Delete one question by id |
+| `/answer` | POST | Save an answer linked to a question |
+| `/results/{question_id}` | GET | Return every answer for one question |
+
+Everything lives in one table. Each row needs a `response_id` (the partition
+key) and a `type` so the two kinds of row can be told apart:
+
+```python
+question row -> {"response_id": "question_ab12...", "type": "question",
+                 "question": "...", "created_time": ...}
+
+answer row   -> {"response_id": "answer_cd34...", "type": "answer",
+                 "question_id": "question_ab12...", "name": "...",
+                 "answer": "...", "created_time": ...}
+```
+
+Work in the order above. Each endpoint has a docstring telling you which
+boto3 call to reach for. The methods you need are `table.put_item`,
+`table.get_item`, `table.scan`, `table.update_item`, and `table.delete_item`.
+
+DynamoDB has no auto-increment and no foreign keys. You generate ids
+yourself, and nothing stops an answer pointing at a question that does not
+exist.
+
+## Test as you go
+
+The server reloads when you save, so you do not need to restart anything.
+
+The easiest way, and the same on every machine, is the `Try it out` buttons
+at <http://localhost:8000/docs>. Use that if you are not sure.
+
+If you prefer the terminal, macOS and Linux:
 
 ```bash
-# Run from: Survey-Webapp/
-git pull
+# Create a question
+curl -X POST http://localhost:8000/create-questions \
+  -H "Content-Type: application/json" \
+  -d '{"content": "What is your favorite language?"}'
+
+# List questions
+curl http://localhost:8000/get-questions
+
+# Answer one (use an id from the call above)
+curl -X POST http://localhost:8000/answer \
+  -H "Content-Type: application/json" \
+  -d '{"question_id": "question_abc123", "name": "Ada", "answer": "Python"}'
+
+# See the results
+curl http://localhost:8000/results/question_abc123
 ```
 
-If you just cloned the repo for the first time, you can skip this step.
+Windows PowerShell. Do not copy the Bash commands above, PowerShell aliases
+`curl` to a different tool and the flags will not work:
 
-## AWS account and credentials
+```powershell
+# Create a question
+Invoke-RestMethod -Method Post -Uri http://localhost:8000/create-questions `
+  -ContentType "application/json" `
+  -Body '{"content": "What is your favorite language?"}'
 
-If you already have an AWS account and local AWS credentials configured, skip ahead to the next section.
+# List questions
+Invoke-RestMethod http://localhost:8000/get-questions
 
-Terraform uses your local AWS credentials to create the AWS resources for this project. The project's Lambda execution role is created automatically by the Terraform IAM module, so you do not need to manually create the Lambda role.
+# Answer one (use an id from the call above)
+Invoke-RestMethod -Method Post -Uri http://localhost:8000/answer `
+  -ContentType "application/json" `
+  -Body '{"question_id": "question_abc123", "name": "Ada", "answer": "Python"}'
 
-### 1. Create or access an AWS account
+# See the results
+Invoke-RestMethod http://localhost:8000/results/question_abc123
+```
 
-Create an AWS account at <https://aws.amazon.com/> if you do not already have one.
+## Troubleshooting
 
-### 2. Sign in to the AWS Console
+**`docker: command not found` or `Cannot connect to the Docker daemon`**
+Docker Desktop is not running. Open it and wait for the whale icon to settle.
 
-Open the AWS Console and confirm that you can access the account you plan to use.
+**`port is already allocated` on 8000**
+Something else is using the port. Stop it, or change the left side of
+`"8000:8000"` in `docker-compose.yml` to `"8080:8000"` and use port 8080.
 
-### 3. Set up local AWS access
+**`/health` returns a 500 about endpoint or credentials**
+The backend cannot see the database container. Run `docker compose down`
+then `docker compose up --build` so both start together.
 
-For this workshop/local setup, use an IAM user access key.
+**Code changes do nothing**
+Confirm you are editing `backend/survey.py` inside the folder you cloned, and
+watch the `docker compose` output for the reload line.
 
-In the AWS Console:
-
-1. Search for `IAM`.
-2. Open `Users`.
-3. Select your IAM user.
-4. Open the `Security credentials` tab.
-5. Scroll to `Access keys`.
-6. Select `Create access key`.
-7. Choose `Command Line Interface (CLI)` as the use case.
-8. Confirm the warning and create the key.
-9. Copy the Access Key ID and Secret Access Key.
-
-The Secret Access Key is only shown once. Keep it somewhere safe while you finish setup, and do not commit it to this repo.
-
-The AWS identity you use locally needs enough permissions for Terraform to manage DynamoDB, Lambda, IAM roles and policies, CloudWatch Logs, and Lambda Function URLs.
-
-### 4. Configure credentials locally
-
-For access keys, run:
+**macOS: "Docker Not Opened", Apple could not verify it is free of malware**
+Click **Done**, not Move to Trash. The app is fine, macOS is just refusing an
+unverified or partly written download. Open **System Settings > Privacy &
+Security**, scroll to the Security section, and click **Open Anyway** next to
+the Docker message. If that button is not there, the download is damaged:
 
 ```bash
-# Run from any folder
-aws configure
+brew reinstall --cask docker-desktop
+open -a Docker
 ```
 
-Enter your AWS Access Key ID, Secret Access Key, default region, and output format. Use `us-east-1` as the default region unless your team says otherwise. `json` is a good default output format.
-
-### 5. Verify your credentials
-
-Run:
+As a last resort, clear the quarantine flag and open it:
 
 ```bash
-# Run from any folder
-aws sts get-caller-identity
+sudo xattr -dr com.apple.quarantine /Applications/Docker.app
+open -a Docker
 ```
 
-If this prints your AWS account and identity information, your credentials are working.
+**macOS: `unknown flag: --build` from `docker compose up --build`**
+You have the Docker CLI with no Compose plugin, usually from
+`brew install docker` without `--cask`. Run `brew uninstall docker`, then
+`brew install --cask docker-desktop`, and open Docker Desktop once.
 
-Do not commit AWS access keys or secrets. Do not paste secrets into source files. This repo ignores `.env`, `.aws/`, and Terraform variable files, but you should still be careful with credentials.
+**Windows: `docker` is not recognized**
+Close PowerShell and open a new window so it picks up the updated PATH. If it
+still fails, Docker Desktop is not installed, only the CLI.
 
-## Project setup flow
+**Windows: Docker Desktop will not start, or complains about WSL 2**
+Run `wsl --install` in an Administrator PowerShell and restart your computer.
+If it still fails, virtualization may be disabled in your BIOS or Virtual
+Machine Platform may be turned off in Windows Features.
 
-After prerequisites and AWS credentials are ready, use this order:
+**Everything is broken and time is short**
+`docker compose down -v` then `docker compose up --build` gives you a clean
+start.
 
-1. Run `git pull` if you cloned this repo during a previous workshop session.
-2. Create your local config files.
-3. Run `./build.sh` from the project root.
-4. Run the Terraform commands from `infra/`.
-5. Run the backend locally with Docker Compose, or use `./run.sh` if you do not want to use Docker.
+## Running without Docker
 
-`build.sh` creates the Lambda deployment package that Terraform uploads to AWS. Run it before `terraform plan` or `terraform apply`.
+Only if Docker will not cooperate on your machine. You need Python 3.12 and
+Java 17 or newer.
 
-`run.sh` starts the local FastAPI development server with Uvicorn. It is only needed for the no-Docker local workflow and is not required for Terraform deployment.
-
-## Run the backend locally with Docker
-
-Docker is recommended for this workshop because it gives everyone a consistent local environment.
-
-The Dockerfile installs `requirements-dev.txt`, which includes `boto3`, so the backend can connect to AWS DynamoDB from inside the container.
-
-### 1. Configure AWS credentials
-
-Make sure you have completed the `AWS account and credentials` section above. As a quick reminder, access-key based setup uses:
+Download DynamoDB Local from AWS, unpack it, and start it in one terminal:
 
 ```bash
-# Run from any folder
-aws configure
+# https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.DownloadingAndRunning.html
+java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb -inMemory -port 8001
 ```
 
-### 2. Create the DynamoDB table
+Then start the backend in a second terminal:
 
-From the project root, build the Lambda package first. Then create the AWS resources from the `infra/` folder:
+macOS and Linux:
 
 ```bash
-# Run from: Survey-Webapp/
-./build.sh
-
-# Then switch to: Survey-Webapp/infra/
-cd infra
-terraform init
-terraform apply
-
-# Return to: Survey-Webapp/
-cd ..
-```
-
-### 3. Create your environment file
-
-From the project root, copy the example file:
-
-```bash
-# Run from: Survey-Webapp/
-cp .env.example .env
-```
-
-The `.env` file contains local app config:
-
-```env
-AWS_REGION=us-east-1
-TABLE_NAME=survey-responses
-```
-
-### 4. Run the backend with Docker Compose
-
-From the project root:
-
-```bash
-# Run from: Survey-Webapp/
-docker compose up --build
-```
-
-Docker Compose will:
-
-- build the backend image from the `Dockerfile`
-- load environment variables from `.env`
-- mount your local AWS credentials into the container
-- expose the backend on port `8000`
-
-To stop the backend, press `Ctrl+C`.
-
-If you want to run it in the background instead:
-
-```bash
-# Run from: Survey-Webapp/
-docker compose up --build -d
-```
-
-Then stop it with:
-
-```bash
-# Run from: Survey-Webapp/
-docker compose down
-```
-
-Then open:
-
-```text
-http://localhost:8000/docs
-```
-
-## Run the backend locally without Docker
-
-Use this option only if you do not want to use Docker. The `run.sh` script starts the local FastAPI development server with Uvicorn and is not required for Terraform deployment.
-
-```bash
-# Run from: Survey-Webapp/
 pip install -r requirements-dev.txt
-./run.sh
+DYNAMODB_ENDPOINT=http://localhost:8001 ./run.sh
 ```
 
-Then open <http://localhost:8000/docs>
+Windows PowerShell (`run.sh` is a Bash script, so start Uvicorn directly):
 
-## Clean up AWS resources
-
-This is a demo/workshop project. When you are done testing, destroy the AWS resources so they do not keep running or create unexpected AWS charges.
-
-From the project root, run:
-
-```bash
-# Run from: Survey-Webapp/
-cd infra
-
-# Now in: Survey-Webapp/infra/
-terraform destroy
-
-# Return to: Survey-Webapp/
-cd ..
+```powershell
+pip install -r requirements-dev.txt
+$env:DYNAMODB_ENDPOINT = "http://localhost:8001"
+cd backend
+python -m uvicorn survey:app --port 8000 --reload
 ```
 
-Type `yes` when Terraform asks for confirmation.
+If this is where you end up, pair with someone whose Docker works instead.
+Fighting a local Python install is not what the session is for.
 
-If you want to preview what Terraform will remove before destroying anything, run:
+## Optional: deploy it to AWS
 
-```bash
-# Run from: Survey-Webapp/
-cd infra
-
-# Now in: Survey-Webapp/infra/
-terraform plan -destroy
-
-# Return to: Survey-Webapp/
-cd ..
-```
-
-## Notes
-
-- Docker is for local development/testing.
-- AWS Lambda deployment still uses `build.sh` and Terraform.
-- The container connects to real AWS DynamoDB using your local AWS credentials mounted into the container.
-- Because this is a demo app, destroy the Terraform resources when you are done testing.
+Once your endpoints work locally, you can put them on real AWS Lambda and
+DynamoDB with Terraform. That track needs an AWS account and credentials, and
+it is written up in `infra/README.md`. It is not part of the workshop session,
+and it can cost money if you leave the resources running, so destroy them when
+you are done.
