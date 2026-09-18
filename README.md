@@ -72,7 +72,7 @@ optional AWS track. See `setup/README.md`.
 Three commands, from any folder:
 
 ```bash
-git clone https://github.com/NSBE-TechWorkshops/Survey-Webapp.git
+git clone -b part-2 https://github.com/NSBE-TechWorkshops/Survey-Webapp.git
 cd Survey-Webapp
 docker compose up --build
 ```
